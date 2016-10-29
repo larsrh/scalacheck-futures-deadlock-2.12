@@ -20,21 +20,28 @@ package remotely
 import org.scalacheck._
 import Prop._
 import scala.concurrent.{ExecutionContext,Future}
-import scalaz.Monad
+import scala.util.{Success,Failure}
+import scalaz.{Monad, \/}
+import scalaz.concurrent.Task
 
 object ResponseSpec extends Properties("Response") {
+
+  def fromFuture[A](f: scala.concurrent.Future[A])(implicit E: scala.concurrent.ExecutionContext): Task[A] =
+    Task.async { cb => f.onComplete {
+      case Success(a) => cb(\/.right(a))
+      case Failure(e) => cb(\/.left(e))
+    }}
 
   property("stack safety") = {
     import ExecutionContext.Implicits.global
     val N = 1
-    val responses2 = (0 until N).map(i => Response.async(Future(i)))
+    val tasks = (0 until N).map(i => fromFuture(Future(i)))
 
-    def leftFold(responses: Seq[Response[Int]]): Response[Int] =
-      responses.foldLeft(Monad[Response].pure(0))(Monad[Response].apply2(_,_)(_ + _))
+    def leftFold(responses: Seq[Task[Int]]): Task[Int] =
+      responses.foldLeft(Monad[Task].pure(0))(Monad[Task].apply2(_,_)(_ + _))
 
-    val ctx = Response.Context.empty
     val expected = (0 until N).sum
 
-    leftFold(responses2)(ctx).run == expected
+    leftFold(tasks).run == expected
   }
 }
