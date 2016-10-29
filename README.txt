@@ -1,7 +1,8 @@
 Reproduction:
 
-sbt test          # deadlocks
-sbt ++2.11.8 test # succeeds
+sbt ++2.11.8 test                       # succeeds
+sbt "testOnly remotely.ResponseSuite"   # succeeds: ScalaTest runner
+sbt "testOnly remotely.ResponseSpec"    # deadlocks: ScalaCheck runner
 
 It also doesn't deadlock after converting the `Properties` to a ScalaTest
 spec, even when using `Checkers` to embed ScalaCheck properties. It just
