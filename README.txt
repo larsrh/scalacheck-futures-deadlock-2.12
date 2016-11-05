@@ -1,3 +1,5 @@
+Fixed in ScalaCheck 1.13.4.
+
 Reproduction:
 
 sbt ++2.11.8 test                       # succeeds
